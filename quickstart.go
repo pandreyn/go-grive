@@ -17,8 +17,6 @@ import (
   "google.golang.org/api/drive/v2"
   "os/exec"
   "runtime"
-
-  "github.com/andlabs/ui"
 )
 
 // getClient uses a Context and Config to retrieve a Token
