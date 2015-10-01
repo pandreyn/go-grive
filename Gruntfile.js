@@ -376,14 +376,10 @@ module.exports = function (grunt) {
 
   grunt.registerMultiTask('goserver', 'Running go server', function() {
 
-    console.log('goserver opts 2:', opts);
-
     var opts = this.options({
         port: 9101,
         hostname: 'localhost'
       });
-
-    console.log('goserver opts 2:', opts);
 
     if (opts.dist) {
       this.async(); // wait forever to keep the server alive

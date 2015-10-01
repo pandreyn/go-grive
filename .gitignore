@@ -7,3 +7,7 @@ app/bower_components
 *.sass-cache
 *.idea
 *.iml
+
+npm-debug.log
+client_secret.json
+go-grive

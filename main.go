@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+  "github.com/gorilla/mux"
+  "strconv"
 )
 
 var (
@@ -21,7 +24,7 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.StringVar(&hostname, "h", "localhost", "hostname")
-	flag.IntVar(&port, "p", 8080, "port")
+	flag.IntVar(&port, "p", 4001, "port")
 	flag.StringVar(&topStaticDir, "static_dir", "", "static directory in addition to default static directory")
 }
 
@@ -52,12 +55,16 @@ func (f disabledDirListing) Readdir(count int) ([]os.FileInfo, error) {
 	return nil, nil
 }
 
+func Search(w http.ResponseWriter, r *http.Request) {
+  w.Write([]byte("Gorilla!\n"))
+}
+
 func main() {
 	// Parse flags
 	flag.Parse()
 	staticDir := flag.Arg(0)
 
-  getFilesFromGDrive()
+	//getFilesFromGDrive()
 
 	// Setup static routes
 	staticRoutes := make(StaticRoutes, 0)
@@ -69,13 +76,18 @@ func main() {
 	}
 	staticRoutes = appendStaticRoute(staticRoutes, staticDir)
 
-	// Handle routes
-	http.Handle("/", http.FileServer(staticRoutes))
+  err := openBrowser(hostname, port)
+  if err != nil {
+    log.Fatalf("Unable to open browser.", err)
+  }
 
-	// Listen on hostname:port
-	fmt.Printf("Listening on %s:%d...\n", hostname, port)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%d", hostname, port), nil)
-	if err != nil {
-		log.Fatal("Error: ", err)
-	}
+
+  r := mux.NewRouter()
+  r.HandleFunc("/search/{searchTerm}", Search)
+
+  r.PathPrefix("/").Handler(http.FileServer(staticRoutes))
+  http.Handle("/", r)
+  address := ":"+strconv.Itoa(port)
+  log.Fatal(http.ListenAndServe(address, r))
+
 }
