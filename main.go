@@ -2,92 +2,107 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
 
-  "github.com/gorilla/mux"
-  "strconv"
+	"github.com/gorilla/mux"
+  "time"
 )
 
+//flags
 var (
-	hostname     string
-	port         int
-	topStaticDir string
+	webDir  string
+	webPort int
 )
 
 func init() {
-	// Flags
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: %s [default_static_dir]\n", os.Args[0])
-		flag.PrintDefaults()
-	}
-	flag.StringVar(&hostname, "h", "localhost", "hostname")
-	flag.IntVar(&port, "p", 4001, "port")
-	flag.StringVar(&topStaticDir, "static_dir", "", "static directory in addition to default static directory")
+	log.Println("Initializing...")
+	//web flags
+	flag.StringVar(&webDir, "webdir", "web/dist", "Change the web directory")
+	flag.IntVar(&webPort, "wport", 4444, "Change port for the web server to listen on")
+
+	flag.Parse()
+
+	webDir = filepath.Clean(webDir)
+
+	log.Println("All systems ready!")
 }
 
-func appendStaticRoute(sr StaticRoutes, dir string) StaticRoutes {
-	if _, err := os.Stat(dir); err != nil {
-		log.Fatal(err)
-	}
-	return append(sr, http.Dir(dir))
-}
+func Logger(inner http.Handler, name string) http.Handler {
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    start := time.Now()
 
-type StaticRoutes []http.FileSystem
+    inner.ServeHTTP(w, r)
 
-func (sr StaticRoutes) Open(name string) (f http.File, err error) {
-	for _, s := range sr {
-		if f, err = s.Open(name); err == nil {
-			f = disabledDirListing{f}
-			return
-		}
-	}
-	return
-}
-
-type disabledDirListing struct {
-	http.File
-}
-
-func (f disabledDirListing) Readdir(count int) ([]os.FileInfo, error) {
-	return nil, nil
-}
-
-func Search(w http.ResponseWriter, r *http.Request) {
-  w.Write([]byte("Gorilla!\n"))
+    log.Printf(
+      "%s\t%s\t%s\t%s",
+      r.Method,
+      r.RequestURI,
+      name,
+      time.Since(start),
+    )
+  })
 }
 
 func main() {
-	// Parse flags
-	flag.Parse()
-	staticDir := flag.Arg(0)
+	//setup all of our routes
+	r := mux.NewRouter()
 
-	//getFilesFromGDrive()
+	// Declare any api handlers here before the asset dirs
+	// or you can use a separate subrouter to put your api on a subdomain
+	// we like to do this in production but it's much simpler to not use it
 
-	// Setup static routes
-	staticRoutes := make(StaticRoutes, 0)
-	if topStaticDir != "" {
-		staticRoutes = appendStaticRoute(staticRoutes, topStaticDir)
+	// We use RequestPathHandler instead of http.FileServer because it allows us to have clean urls
+	r.PathPrefix("/app/").HandlerFunc(RequestPathHandler)
+	r.PathPrefix("/lib/").HandlerFunc(RequestPathHandler)
+	r.PathPrefix("/css/").HandlerFunc(RequestPathHandler)
+	r.PathPrefix("/img/").HandlerFunc(RequestPathHandler)
+	r.PathPrefix("/fonts/").HandlerFunc(RequestPathHandler)
+
+	// General
+	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
+		http.ServeFile(w, req, filepath.Join(webDir, "/favicon.ico"))
+	})
+
+	// For all other routes we serve up our apps index file
+	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Cache-Control", "no-store")
+		http.ServeFile(w, req, filepath.Join(webDir, "/index.html"))
+	})
+
+	log.Println("Starting web server")
+	if err := http.ListenAndServe(":"+strconv.Itoa(webPort), r); err != nil {
+		log.Fatalln("Server error:", err)
 	}
-	if staticDir == "" {
-		staticDir = "./"
+}
+
+// Serves files relative to the webDir
+// Only safe if you use with PathPrefix() or similar functions
+func RequestPathHandler(w http.ResponseWriter, req *http.Request) {
+
+	path := filepath.Join(webDir, req.URL.Path)
+
+	log.Println("Serving file:", path)
+
+	//do not show directories
+	fi, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		log.Println("[FileHandler] error path does not exist:", err)
+		http.NotFound(w, req)
+		return
+	} else if err != nil {
+		http.NotFound(w, req)
+		log.Println("[FileHandler] error checking if file is dir:", err)
+		http.NotFound(w, req)
+		return
 	}
-	staticRoutes = appendStaticRoute(staticRoutes, staticDir)
+	if fi.IsDir() {
+		http.NotFound(w, req)
+		return
+	}
 
-  err := openBrowser(hostname, port)
-  if err != nil {
-    log.Fatalf("Unable to open browser.", err)
-  }
-
-
-  r := mux.NewRouter()
-  r.HandleFunc("/search/{searchTerm}", Search)
-
-  r.PathPrefix("/").Handler(http.FileServer(staticRoutes))
-  http.Handle("/", r)
-  address := ":"+strconv.Itoa(port)
-  log.Fatal(http.ListenAndServe(address, r))
-
+	http.ServeFile(w, req, path)
 }

@@ -11,3 +11,12 @@ app/bower_components
 npm-debug.log
 client_secret.json
 go-grive
+go-grive.exe
+
+bower
+bower_components
+web/scss/material
+*.dmp
+*.out
+*.log
+*.TMP

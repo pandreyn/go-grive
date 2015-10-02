@@ -1,0 +1,32 @@
+{
+  "name": "go-grive",
+  "version": "0.0.1",
+  "description": "Go client for GoogleDrive",
+  "authors": [
+    "Andrey Petkevich"
+  ],
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "bower",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap-sass-official": "^3.3.5",
+    "angular": "^1.4.7",
+    "angular-ui-router": "^0.2.15",
+    "angular-resource": "^1.4.7",
+    "moment": "^2.10.6",
+    "ngprogress": "^1.1.1",
+    "angular-material": "^0.11.2",
+    "angular-breadcrumb": "^0.4.1",
+    "ng-file-upload": "^8.0.6",
+    "angular-scroll": "^0.7.3"
+  },
+  "resolutions": {
+    "angular": "^1.4.7"
+  }
+}
