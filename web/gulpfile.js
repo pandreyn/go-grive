@@ -7,6 +7,12 @@ var rename = require("gulp-rename");
 var gulpif = require('gulp-if');
 var gutil = require('gulp-util');
 
+var wiredep = require('wiredep').stream;
+var usemin = require('gulp-usemin');
+var uglify = require('gulp-uglify');
+var del = require('del');
+var runSequence = require('run-sequence');
+
 // Webpack
 var webpackreg = require("webpack");
 var webpack = require('gulp-webpack');
@@ -40,6 +46,36 @@ function displayError(error) {
   // [gulp-sass] error message in file_name on line 1
   console.error(errorString)
 }
+
+gulp.task('clean', function () {
+  return del([
+    'dist/',
+    '.tmp/'
+  ]);
+});
+
+gulp.task('wiredep', function () {
+  return gulp.src('src/index.html')
+      .pipe(wiredep({
+        directory: './bower_components',
+        bowerJson: require('./bower.json')
+      }))
+      .pipe(gulp.dest('.tmp/'));
+});
+
+gulp.task('usemin', ['clean'], function() {
+  return gulp.src('.tmp/index.html')
+      //.pipe(wiredep({
+      //  directory: './bower_components',
+      //  bowerJson: require('./bower.json')
+      //}))
+      .pipe(usemin({
+        assetsDir: 'assets',
+        css: [minifyCSS(), 'concat'],
+        js: [uglify(), 'concat']
+      }))
+      .pipe(gulp.dest('dist/'));
+});
 
 gulp.task("webpack", function () {
   var webpackConfig = {
@@ -183,3 +219,5 @@ gulp.task('default', ['prep-material', 'scss', 'html', 'webpack', 'img']);
 gulp.task('static', ['prep-material']);
 
 gulp.task('serve', ['default', 'watch']);
+
+gulp.task('test', ['clean:dev', 'wiredep', 'usemin']);

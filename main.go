@@ -10,11 +10,13 @@ import (
 
 	"github.com/gorilla/mux"
   "time"
+  "fmt"
 )
 
 //flags
 var (
 	webDir  string
+  webHost string
 	webPort int
 )
 
@@ -22,6 +24,7 @@ func init() {
 	log.Println("Initializing...")
 	//web flags
 	flag.StringVar(&webDir, "webdir", "web/dist", "Change the web directory")
+  flag.StringVar(&webHost, "webHost", "localhost", "Change the host")
 	flag.IntVar(&webPort, "wport", 4444, "Change port for the web server to listen on")
 
 	flag.Parse()
@@ -54,6 +57,7 @@ func main() {
 	// Declare any api handlers here before the asset dirs
 	// or you can use a separate subrouter to put your api on a subdomain
 	// we like to do this in production but it's much simpler to not use it
+  r.HandleFunc("/task", TodoIndex)
 
 	// We use RequestPathHandler instead of http.FileServer because it allows us to have clean urls
 	r.PathPrefix("/app/").HandlerFunc(RequestPathHandler)
@@ -72,6 +76,11 @@ func main() {
 		w.Header().Add("Cache-Control", "no-store")
 		http.ServeFile(w, req, filepath.Join(webDir, "/index.html"))
 	})
+
+	err := openBrowser(webHost, webPort)
+	if err != nil {
+		log.Fatalf("Unable to open browser: %v", err)
+	}
 
 	log.Println("Starting web server")
 	if err := http.ListenAndServe(":"+strconv.Itoa(webPort), r); err != nil {
@@ -105,4 +114,25 @@ func RequestPathHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	http.ServeFile(w, req, path)
+}
+
+//func openBrowser(hostname string, port int) error {
+//
+//  var err error
+//  address := "http://"+hostname+":"+strconv.Itoa(port)+"/"
+//
+//  switch runtime.GOOS {
+//  case "linux":
+//    err = exec.Command("xdg-open", address).Start()
+//  case "windows", "darwin":
+//    err = exec.Command("rundll32", "url.dll,FileProtocolHandler", address).Start()
+//  default:
+//    err = fmt.Errorf("unsupported platform")
+//  }
+//
+//  return err
+//}
+
+func TodoIndex(w http.ResponseWriter, r *http.Request) {
+  fmt.Fprintln(w, "Todo Index!")
 }
