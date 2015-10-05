@@ -1,6 +1,11 @@
 'use strict';
+/*
 
-console.info('Welcome to go-grive', VERSION);
+app.js
+
+ */
+
+//console.info('Welcome to go-grive', VERSION);
 
 // Required for angular-material
 require('angular-aria');

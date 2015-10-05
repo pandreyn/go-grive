@@ -3,6 +3,10 @@ dist
 .tmp
 .sass-cache
 app/bower_components
+web/node_modules
+
+web/src/css
+web/src/js
 
 *.sass-cache
 *.idea

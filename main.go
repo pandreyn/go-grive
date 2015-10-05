@@ -11,6 +11,8 @@ import (
 	"github.com/gorilla/mux"
   "time"
   "fmt"
+  "runtime"
+  "os/exec"
 )
 
 //flags
@@ -50,6 +52,23 @@ func Logger(inner http.Handler, name string) http.Handler {
   })
 }
 
+func openBrowser(hostname string, port int) error {
+
+  var err error
+  address := "http://"+hostname+":"+strconv.Itoa(port)+"/"
+
+  switch runtime.GOOS {
+  case "linux":
+    err = exec.Command("xdg-open", address).Start()
+  case "windows", "darwin":
+    err = exec.Command("rundll32", "url.dll,FileProtocolHandler", address).Start()
+  default:
+    err = fmt.Errorf("unsupported platform")
+  }
+
+  return err
+}
+
 func main() {
 	//setup all of our routes
 	r := mux.NewRouter()
@@ -63,6 +82,7 @@ func main() {
 	r.PathPrefix("/app/").HandlerFunc(RequestPathHandler)
 	r.PathPrefix("/lib/").HandlerFunc(RequestPathHandler)
 	r.PathPrefix("/css/").HandlerFunc(RequestPathHandler)
+  r.PathPrefix("/js/").HandlerFunc(RequestPathHandler)
 	r.PathPrefix("/img/").HandlerFunc(RequestPathHandler)
 	r.PathPrefix("/fonts/").HandlerFunc(RequestPathHandler)
 

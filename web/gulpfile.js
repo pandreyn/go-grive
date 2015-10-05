@@ -1,4 +1,5 @@
 // Gulp dependencies
+var es6 = require('es6-promise').polyfill();
 var gulp = require('gulp');
 var sass = require('gulp-ruby-sass');
 var minifyCSS = require('gulp-minify-css');
@@ -8,10 +9,14 @@ var gulpif = require('gulp-if');
 var gutil = require('gulp-util');
 
 var wiredep = require('wiredep').stream;
-var usemin = require('gulp-usemin');
+var usemin = require('gulp-usemin-reloaded');
 var uglify = require('gulp-uglify');
 var del = require('del');
-var runSequence = require('run-sequence');
+var concat = require('gulp-concat');
+var rev = require('gulp-rev');
+var minifyHtml = require('gulp-minify-html');
+
+var runSequence = require('run-sequence').use(gulp);
 
 // Webpack
 var webpackreg = require("webpack");
@@ -50,7 +55,9 @@ function displayError(error) {
 gulp.task('clean', function () {
   return del([
     'dist/',
-    '.tmp/'
+    '.tmp/',
+    'src/ccs/',
+    'src/js/'
   ]);
 });
 
@@ -63,16 +70,26 @@ gulp.task('wiredep', function () {
       .pipe(gulp.dest('.tmp/'));
 });
 
-gulp.task('usemin', ['clean'], function() {
+gulp.task('usemin', function () {
   return gulp.src('.tmp/index.html')
-      //.pipe(wiredep({
-      //  directory: './bower_components',
-      //  bowerJson: require('./bower.json')
-      //}))
+    //.pipe(wiredep({
+    //  directory: './bower_components',
+    //  bowerJson: require('./bower.json')
+    //}))
       .pipe(usemin({
-        assetsDir: 'assets',
-        css: [minifyCSS(), 'concat'],
-        js: [uglify(), 'concat']
+
+        rules: {
+          build: {
+            css: [minifyCSS(), 'concat'],
+            js: [uglify(), rev()]
+            //,
+            //html: [minifyHtml({empty: true})]
+          }
+        }
+
+        //assetsDir: 'assets',
+        //css: [/*minifyCSS()*/, 'concat'],
+        //js: [/*uglify()*/, 'concat']
       }))
       .pipe(gulp.dest('dist/'));
 });
@@ -166,6 +183,13 @@ gulp.task("html", function () {
       .pipe(gulp.dest('dist/'))
 });
 
+gulp.task("js", function () {
+  return gulp.src('src/**/*.js')
+      .pipe(concat('all.js'))
+      .pipe(gulpif(argv.dev, gutil.noop(), uglify()))
+      .pipe(gulp.dest('src/js/'))
+});
+
 gulp.task('scss', function () {
   //take all files from scss compile then minify then put them in www/css folder
 
@@ -182,18 +206,7 @@ gulp.task('scss', function () {
     // if devmode do nothing otherwise minify
     // note !argv.dev doesnt work
       .pipe(gulpif(argv.dev, gutil.noop(), minifyCSS()))
-      .pipe(gulp.dest('dist/css/'))
-});
-
-// Copies angular-material css files to scss/material/*.scss since you cant @import css files in scss
-gulp.task('prep-material', function () {
-  return gulp.src('bower_components/angular-material/*.scss')
-      .pipe(rename({
-        // Make it a partial
-        prefix: "_"
-        //extname: ".scss"
-      }))
-      .pipe(gulp.dest('scss/material'))
+      .pipe(gulp.dest('src/css/'))
 });
 
 //copy image files over to dist folder
@@ -221,3 +234,8 @@ gulp.task('static', ['prep-material']);
 gulp.task('serve', ['default', 'watch']);
 
 gulp.task('test', ['clean:dev', 'wiredep', 'usemin']);
+
+gulp.task('build', function (done) {
+  runSequence('clean', ['scss', 'js', 'wiredep'], ['usemin', 'html', 'img'], done);
+});
+

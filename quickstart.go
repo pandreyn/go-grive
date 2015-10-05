@@ -8,29 +8,29 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v2"
-	"os/exec"
-	"runtime"
+	//"os/exec"
+	//"runtime"
 
 	"github.com/pandreyn/go-grive/gdrive"
-	"strconv"
+	//"strconv"
 )
 
-func openBrowser(hostname string, port int) error {
-
-	var err error
-	address := "http://"+hostname+":"+strconv.Itoa(port)+"/"
-
-	switch runtime.GOOS {
-	case "linux":
-		err = exec.Command("xdg-open", address).Start()
-	case "windows", "darwin":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", address).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
-	}
-
-	return err
-}
+//func openBrowser(hostname string, port int) error {
+//
+//	var err error
+//	address := "http://"+hostname+":"+strconv.Itoa(port)+"/"
+//
+//	switch runtime.GOOS {
+//	case "linux":
+//		err = exec.Command("xdg-open", address).Start()
+//	case "windows", "darwin":
+//		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", address).Start()
+//	default:
+//		err = fmt.Errorf("unsupported platform")
+//	}
+//
+//	return err
+//}
 
 func getFilesFromGDrive() {
 	ctx := context.Background()
